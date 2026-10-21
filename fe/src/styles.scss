@@ -1,0 +1,172 @@
+:root {
+  --p-50: #faf8ff; --p-100: #f1ecfd; --p-200: #e2d8fa; --p-400: #b9a5ee; --p-500: #a28be6; --p-600: #8470d6; --p-700: #6f5bc4; --p-900: #4a3b82;
+  --bg: #fbf9ff; --card: #fff; --text: #2f2a42; --muted: #81799a; --border: #ece7f8;
+  --ok: #3fae6a; --warn: #e8a63a; --danger: #e05d5d; --info: #5b8def;
+  --radius: 14px; --shadow: 0 2px 12px rgba(132, 112, 214, .08);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 16px; margin: 0 0 12px; } h3 { font-size: 14px; margin: 0 0 8px; }
+.page { padding: 24px; max-width: 1400px; margin: 0 auto; }
+.page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.sub { color: var(--muted); margin: 0; }
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; border: 1px solid var(--border); }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 760px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } .page { padding: 14px; } }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.mt { margin-top: 16px; }
+.muted { color: var(--muted); }
+.empty { text-align: center; color: var(--muted); padding: 28px 0; }
+
+.btn { border: 1px solid var(--border); background: #fff; color: var(--text); padding: 8px 14px; border-radius: 10px; cursor: pointer; font: inherit; transition: .15s;
+  &:hover { background: var(--p-100); border-color: var(--p-200); } &:disabled { opacity: .5; cursor: not-allowed; }
+  &.primary { background: var(--p-600); color: #fff; border-color: var(--p-600); &:hover { background: var(--p-700); } }
+  &.danger { color: var(--danger); } &.sm { padding: 4px 10px; font-size: 12px; } }
+input, select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text); min-width: 0;
+  &:focus { outline: 2px solid var(--p-200); border-color: var(--p-400); } }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; input, select, textarea { font-weight: 400; color: var(--text); } }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; .full { grid-column: 1 / -1; } }
+
+table.tbl { width: 100%; border-collapse: collapse;
+  th { text-align: left; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:hover { background: var(--p-50); } tr.click { cursor: pointer; } }
+.table-wrap { overflow-x: auto; }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--p-100); color: var(--p-700);
+  &.ok { background: #e3f5ea; color: #2f7d4f; } &.warn { background: #fdf0d8; color: #9a6a14; } &.danger { background: #fbe4e4; color: #a63d3d; } &.gray { background: #f0eef5; color: #6b6680; } }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+  button { background: none; border: 0; padding: 10px 16px; cursor: pointer; font: inherit; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
+    &.active { color: var(--p-700); border-color: var(--p-500); font-weight: 600; } } }
+.thumb { width: 54px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, var(--p-100), var(--p-200)); display: grid; place-items: center; font-size: 18px; object-fit: cover; }
+/* ==================== TÙY CHỈNH KHUNG VIDEO CAMERA ==================== */
+.camera-container, .grid {
+  /* Đưa danh sách camera hiển thị dạng lưới ngang (2 cột hoặc 3 cột tuỳ ý) */
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Mặc định 2 cột nằm ngang */
+  gap: 16px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr; /* Màn hình nhỏ thì về 1 cột */
+  }
+}
+
+/* Thẻ chứa mỗi camera */
+.camera-card, card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Thẻ video hoặc thẻ chứa thẻ video */
+video, img.camera-stream, .video-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9; /* Cố định chuẩn tỷ lệ ngang 16:9 */
+  object-fit: cover;    /* Tránh bị méo hình, tự động cắt lấp đầy khung */
+  background: #000;
+  border-radius: 8px;
+}
+/* --- GIAO DIỆN LƯỚI DANH SÁCH CAMERA (THUMBNAIL) --- */
+.camera-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Tự động chia cột linh hoạt như danh sách sản phẩm */
+  gap: 16px;
+  margin-top: 16px;
+
+  .camera-item-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 16px rgba(132, 112, 214, 0.15);
+      border-color: var(--p-400);
+    }
+
+    /* Khung chứa video dạng nhỏ, nằm ngang chuẩn 16:9 */
+    .video-thumbnail-wrapper {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+
+      video, img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .camera-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+
+      h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+      }
+    }
+  }
+}
+
+/* --- GIAO DIỆN KHI PHÓNG TO (MODAL / FULLVIEW) --- */
+.camera-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(47, 42, 66, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 24px;
+
+  .camera-modal-content {
+    background: var(--card);
+    width: 100%;
+    max-width: 900px;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      h3 { margin: 0; font-size: 18px; }
+    }
+
+    .modal-video-wrapper {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+
+      video, img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain; /* Khi phóng to có thể dùng contain để thấy toàn vẹn khung hình */
+      }
+    }
+  }
+}

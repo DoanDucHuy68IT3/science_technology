@@ -1,0 +1,97 @@
+    <div class="page">
+    <div class="page-head">
+        <div>
+        <h1>📹 Camera AI</h1>
+        <p class="sub">Giám sát toàn bộ hệ thống camera đồng thời và bảng cảnh báo AI</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="row">
+        <h2 class="spacer">Giám sát trực tiếp tất cả Camera</h2>
+        </div>
+
+        <div class="camera-grid">
+        @for (cam of cameras(); track cam.id) {
+            <div class="card video-box">
+            <div class="row camera-header">
+                <b>{{ cam.cameraName }}</b>
+                <span class="spacer"></span>
+               <span
+                    class="badge"
+                    [class.online]="cam.status?.toString().toLowerCase() === 'online'"
+                    [class.offline]="cam.status?.toString().toLowerCase() === 'offline'"
+                    >
+                    {{ cam.status }}
+                </span>
+                <button class="btn" (click)="toggleFull($event)">⛶ Toàn màn hình</button>
+            </div>
+
+            <div class="video-container">
+                <video #videoPlayer controls autoplay muted playsinline class="hls-video"></video>
+                <span class="live">● LIVE</span>
+            </div>
+            <small class="muted loc">Vị trí: {{ cam.location || 'Không xác định' }}</small>
+            </div>
+        } @empty {
+            <div class="empty-cameras">Đang tải danh sách luồng camera...</div>
+        }
+        </div>
+    </div>
+
+    <h2 class="mt">Cảnh báo AI</h2>
+    <div class="grid g3">
+        @for (a of cards; track a.code) {
+        <div class="card ac" [style.border-left-color]="a.color" [class.on]="filter() === a.code" (click)="filter.set(filter() === a.code ? '' : a.code)">
+            <div class="row">
+            <span class="ico">{{ a.icon }}</span>
+            <b class="spacer">{{ a.title }}</b>
+            <span class="n">{{ countOf(a.code) }}</span>
+            </div>
+            <small class="muted">{{ a.desc }}</small>
+        </div>
+        }
+    </div>
+    <p class="warn">Đây là kết quả AI cần giáo viên xem xét — chưa phải vi phạm đã được xác nhận.</p>
+
+    <div class="card table-wrap">
+        <table class="tbl">
+        <thead>
+            <tr>
+            <th>Thời gian</th>
+            <th>Camera</th>
+            <th>Loại cảnh báo</th>
+            <th>Ảnh</th>
+            <th>Độ tin cậy</th>
+            <th>Xác minh</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (e of events(); track e.id) {
+            <tr class="click" (click)="selected.set(e)">
+                <td>{{ e.detectedAt | date: 'dd/MM HH:mm:ss' }}</td>
+                <td>{{ e.cameraName }}</td>
+                <td>{{ e.violationTypeName }}</td>
+                <td>
+                <div class="thumb">
+                    @if (e.imageUrl) {
+                    <img class="thumb" [src]="e.imageUrl" alt="" />
+                    } @else {
+                    📷
+                    }
+                </div>
+                </td>
+                <td>{{ e.confidence | confidence }}</td>
+                <td><app-status-badge [status]="e.reviewStatus" /></td>
+            </tr>
+            } @empty {
+            <tr><td colspan="6" class="empty">Chưa có cảnh báo</td></tr>
+            }
+        </tbody>
+        </table>
+    </div>
+    </div>
+
+    @if (selected(); as s) {
+    <app-violation-review-modal [v]="s" (closed)="selected.set(null)" (reviewed)="reload()" />
+    }

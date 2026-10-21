@@ -1,0 +1,73 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h2>🚀 Tạo tài khoản mới</h2>
+      <p class="sub">Điền thông tin bên dưới để đăng ký hệ thống</p>
+    </div>
+
+    <!-- Thông báo lỗi / thành công -->
+    @if (errorMessage()) {
+      <div class="alert error">{{ errorMessage() }}</div>
+    }
+    @if (successMessage()) {
+      <div class="alert success">{{ successMessage() }}</div>
+    }
+
+    <form [formGroup]="signUpForm" (ngSubmit)="onSubmit()">
+      
+      <!-- Username -->
+      <div class="form-group">
+        <label>Tên đăng nhập</label>
+        <input type="text" formControlName="username" placeholder="Nhập username..." />
+        @if (signUpForm.get('username')?.touched && signUpForm.get('username')?.invalid) {
+          <small class="error-text">Tên đăng nhập bắt buộc (tối thiểu 3 ký tự).</small>
+        }
+      </div>
+
+      <!-- Full Name -->
+      <div class="form-group">
+        <label>Họ và tên</label>
+        <input type="text" formControlName="fullName" placeholder="Nhập họ và tên..." />
+        @if (signUpForm.get('fullName')?.touched && signUpForm.get('fullName')?.invalid) {
+          <small class="error-text">Vui lòng nhập họ và tên.</small>
+        }
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" formControlName="email" placeholder="name@example.com" />
+        @if (signUpForm.get('email')?.touched && signUpForm.get('email')?.invalid) {
+          <small class="error-text">Email không hợp lệ.</small>
+        }
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label>Mật khẩu</label>
+        <input type="password" formControlName="password" placeholder="Ít nhất 6 ký tự" />
+        @if (signUpForm.get('password')?.touched && signUpForm.get('password')?.invalid) {
+          <small class="error-text">Mật khẩu phải có ít nhất 6 ký tự.</small>
+        }
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="form-group">
+        <label>Xác nhận mật khẩu</label>
+        <input type="password" formControlName="confirmPassword" placeholder="Nhập lại mật khẩu" />
+        @if (signUpForm.get('confirmPassword')?.touched && signUpForm.hasError('passwordMismatch')) {
+          <small class="error-text">Mật khẩu xác nhận không khớp.</small>
+        }
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn primary full" [disabled]="loading()">
+        {{ loading() ? 'Đang xử lý...' : 'Đăng ký' }}
+      </button>
+
+      <div class="auth-footer">
+        <span>Đã có tài khoản? <a routerLink="/login">Đăng nhập ngay</a></span>
+      </div>
+    </form>
+  </div>
+</div>

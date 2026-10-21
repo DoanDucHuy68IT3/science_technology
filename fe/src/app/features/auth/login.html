@@ -1,0 +1,28 @@
+<div class="wrap">
+  <div class="card box">
+    <div class="logo">🎓</div>
+    <h1>Camera AI</h1>
+    <p class="sub">Đăng nhập tài khoản giáo viên</p>
+    <div class="form">
+      <label class="f">
+        Tên đăng nhập
+        <input name="u" [(ngModel)]="username" autocomplete="username" />
+      </label>
+      <label class="f">
+        Mật khẩu
+        <input name="p" type="password" [(ngModel)]="password" autocomplete="current-password" (keyup.enter)="submit()" />
+      </label>
+      @if (error()) { 
+        <div class="err">{{ error() }}</div> 
+      }
+      <button class="btn primary" (click)="submit()" [disabled]="loading()">
+        {{ loading() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+      </button>
+
+      <!-- 👉 Thêm phần chuyển hướng sang trang đăng ký tại đây -->
+      <div class="auth-footer" style="text-align: center; margin-top: 16px; font-size: 13px; color: #94a3b8;">
+        <span>Chưa có tài khoản? <a routerLink="/signup" style="color: #3b82f6; text-decoration: none; font-weight: 500;">Đăng ký ngay</a></span>
+      </div>
+    </div>
+  </div>
+</div>
