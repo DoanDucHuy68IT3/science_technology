@@ -1,0 +1,465 @@
+/* ============================================================
+    MySQL - Tạo bảng theo ERD (11 bảng)
+    ============================================================ */
+
+-- CREATE DATABASE IF NOT EXISTS final_face CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- USE final_face;
+
+/* ---------- (Tùy chọn) Xóa bảng cũ để tạo lại, bỏ comment nếu cần ---------- */
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS camera_count_logs;
+DROP TABLE IF EXISTS camera_schedules;
+DROP TABLE IF EXISTS camera_logs;
+DROP TABLE IF EXISTS violation_types;
+DROP TABLE IF EXISTS sensor_logs;
+DROP TABLE IF EXISTS device_mcu;
+DROP TABLE IF EXISTS person_face_embeddings;
+DROP TABLE IF EXISTS persons;
+DROP TABLE IF EXISTS camera_device_details;
+DROP TABLE IF EXISTS camera_devices;
+DROP TABLE IF EXISTS users;
+SET FOREIGN_KEY_CHECKS = 1;
+
+
+/* 1. users */
+CREATE TABLE users (
+    id             BIGINT AUTO_INCREMENT NOT NULL,
+    username       VARCHAR(50)    NOT NULL,
+    password_hash  VARCHAR(255)   NOT NULL,
+    full_name      VARCHAR(100)   NULL,
+    email          VARCHAR(255)   NULL,
+    phone          VARCHAR(20)    NULL,
+    avatar_url     VARCHAR(500)   NULL,
+    role           VARCHAR(20)    NOT NULL DEFAULT 'user',
+    token_tele     VARCHAR(255)   NULL,
+    id_chat_tele   VARCHAR(100)   NULL,
+    is_active      BOOLEAN        NOT NULL DEFAULT 1,
+    created_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT PK_users PRIMARY KEY (id),
+    CONSTRAINT UQ_users_username UNIQUE (username),
+    CONSTRAINT UQ_users_email UNIQUE (email),
+    CONSTRAINT CK_users_role CHECK (role IN ('admin', 'user'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+
+
+/* 2. camera_devices */
+CREATE TABLE camera_devices (
+    id             BIGINT AUTO_INCREMENT NOT NULL,
+    camera_code    VARCHAR(50)    NOT NULL,
+    user_id        BIGINT         NOT NULL,
+    camera_name    VARCHAR(100)   NOT NULL,
+    ip_address     VARCHAR(45)    NULL,
+    stream_url     VARCHAR(500)   NULL,
+    location       VARCHAR(255)   NULL,
+    status         VARCHAR(20)    NOT NULL DEFAULT 'offline',
+    last_seen      DATETIME       NULL,
+    created_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT PK_camera_devices PRIMARY KEY (id),
+    CONSTRAINT UQ_camera_devices_code UNIQUE (camera_code),
+    CONSTRAINT FK_camera_devices_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT CK_camera_devices_status CHECK (status IN ('online', 'offline'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX IX_camera_devices_user ON camera_devices(user_id);
+
+
+/* 3. camera_device_details (1-1 với camera_devices) */
+CREATE TABLE camera_device_details (
+    id                 BIGINT AUTO_INCREMENT NOT NULL,
+    camera_id          BIGINT         NOT NULL,
+    description        VARCHAR(500)   NULL,
+    installation_date  DATE           NULL,
+    direction          VARCHAR(100)   NULL,
+    created_at         DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT PK_camera_device_details PRIMARY KEY (id),
+    CONSTRAINT UQ_camera_device_details_camera UNIQUE (camera_id),
+    CONSTRAINT FK_camera_device_details_camera FOREIGN KEY (camera_id)
+        REFERENCES camera_devices(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+/* 4. persons */
+CREATE TABLE persons (
+    id             BIGINT AUTO_INCREMENT NOT NULL,
+    person_code    VARCHAR(50)    NOT NULL,
+    full_name      VARCHAR(100)   NOT NULL,
+    class_name     VARCHAR(30)    NULL,
+    description    VARCHAR(500)   NULL,
+    is_active      BOOLEAN        NOT NULL DEFAULT 1,
+    created_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT PK_persons PRIMARY KEY (id),
+    CONSTRAINT UQ_persons_code UNIQUE (person_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE persons CHANGE class_name location VARCHAR(255);
+ALTER TABLE persons ADD COLUMN user_id BIGINT NULL; ALTER TABLE persons ADD CONSTRAINT FK_persons_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+
+/* 5. person_face_embeddings */
+CREATE TABLE person_face_embeddings (
+    id                 BIGINT AUTO_INCREMENT NOT NULL,
+    person_id          BIGINT         NOT NULL,
+    model_name         VARCHAR(100)   NOT NULL,
+    model_version      VARCHAR(50)    NULL,
+    embedding_json     LONGTEXT       NOT NULL,
+    sample_image_url   VARCHAR(500)   NULL,
+    created_at         DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_person_face_embeddings PRIMARY KEY (id),
+    CONSTRAINT FK_emb_person FOREIGN KEY (person_id)
+        REFERENCES persons(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX IX_emb_person ON person_face_embeddings(person_id);
+
+ALTER TABLE db_camera.person_face_embeddings 
+ADD CONSTRAINT uk_person_id UNIQUE (person_id);
+/* 6. device_mcu */
+CREATE TABLE device_mcu (
+    id             BIGINT AUTO_INCREMENT NOT NULL,
+    mac_address    VARCHAR(17)    NOT NULL,
+    user_id        BIGINT         NOT NULL,
+    device_name    VARCHAR(100)   NOT NULL,
+    location       VARCHAR(255)   NULL,
+    status         VARCHAR(20)    NOT NULL DEFAULT 'offline',
+    last_seen      DATETIME       NULL,
+    created_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT PK_device_mcu PRIMARY KEY (id),
+    CONSTRAINT UQ_device_mcu_mac UNIQUE (mac_address),
+    CONSTRAINT FK_device_mcu_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT CK_device_mcu_status CHECK (status IN ('online', 'offline'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX IX_device_mcu_user ON device_mcu(user_id);
+
+
+/* 7. sensor_logs */
+CREATE TABLE sensor_logs (
+    id             BIGINT AUTO_INCREMENT NOT NULL,
+    mcu_id         BIGINT         NOT NULL,
+    temperature    DECIMAL(6,2)   NULL,
+    humidity       DECIMAL(6,2)   NULL,
+    gas_level      DECIMAL(6,2)   NULL,
+    smoke_level    DECIMAL(6,2)   NULL,
+    recorded_at    DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_sensor_logs PRIMARY KEY (id),
+    CONSTRAINT FK_sensor_logs_mcu FOREIGN KEY (mcu_id)
+        REFERENCES device_mcu(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX IX_sensor_mcu_time ON sensor_logs(mcu_id, recorded_at DESC);
+
+
+/* 8. violation_types */
+CREATE TABLE violation_types (
+    id             INT AUTO_INCREMENT NOT NULL,
+    code           VARCHAR(50)    NOT NULL,
+    name           VARCHAR(100)   NOT NULL,
+    description    VARCHAR(500)   NULL,
+    is_active      BOOLEAN        NOT NULL DEFAULT 1,
+    created_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_violation_types PRIMARY KEY (id),
+    CONSTRAINT UQ_violation_types_code UNIQUE (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+/* 9. camera_logs */
+CREATE TABLE camera_logs (
+    id                   BIGINT AUTO_INCREMENT NOT NULL,
+    camera_id            BIGINT         NOT NULL,
+    person_id            BIGINT         NULL,      -- NULL = người lạ / chưa nhận diện
+    violation_type_id    INT            NOT NULL,
+    detected_at          DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    confidence           DECIMAL(5,4)   NULL,
+    image_url            VARCHAR(500)   NULL,
+    review_status        VARCHAR(20)    NOT NULL DEFAULT 'pending',
+    reviewed_by          BIGINT         NULL,
+    reviewed_at          DATETIME       NULL,
+    review_note          VARCHAR(500)   NULL,
+    source_event_id      VARCHAR(100)   NULL,
+    created_at           DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_camera_logs PRIMARY KEY (id),
+    CONSTRAINT UQ_camlog_source_event UNIQUE (source_event_id),
+    CONSTRAINT FK_camlog_camera FOREIGN KEY (camera_id) REFERENCES camera_devices(id),
+    CONSTRAINT FK_camlog_person FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE SET NULL,
+    CONSTRAINT FK_camlog_violation FOREIGN KEY (violation_type_id) REFERENCES violation_types(id),
+    CONSTRAINT FK_camlog_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT CK_camlog_review CHECK (review_status IN ('pending', 'approved', 'rejected')),
+    CONSTRAINT CK_camlog_conf CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX IX_camlog_cam_time ON camera_logs(camera_id, detected_at DESC);
+CREATE INDEX IX_camlog_review ON camera_logs(review_status, detected_at DESC);
+CREATE INDEX IX_camlog_person ON camera_logs(person_id);
+CREATE INDEX IX_camlog_violation ON camera_logs(violation_type_id);
+
+
+/* 10. camera_schedules */
+CREATE TABLE camera_schedules (
+    id               BIGINT AUTO_INCREMENT NOT NULL,
+    camera_id        BIGINT         NOT NULL,
+    schedule_name    VARCHAR(100)   NOT NULL,
+    start_time       TIME           NOT NULL,
+    end_time         TIME           NOT NULL,
+    days_of_week     VARCHAR(30)    NOT NULL,   -- ví dụ '1,2,3,4,5' (1 = Thứ 2 ... 7 = CN)
+    is_active        BOOLEAN        NOT NULL DEFAULT 1,
+    created_at       DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT PK_camera_schedules PRIMARY KEY (id),
+    CONSTRAINT FK_sched_camera FOREIGN KEY (camera_id)
+        REFERENCES camera_devices(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX IX_sched_camera ON camera_schedules(camera_id);
+
+
+/* 11. camera_count_logs */
+CREATE TABLE camera_count_logs (
+    id              BIGINT AUTO_INCREMENT NOT NULL,
+    camera_id       BIGINT         NOT NULL,
+    person_count    INT            NOT NULL,
+    recorded_at     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_camera_count_logs PRIMARY KEY (id),
+    CONSTRAINT FK_count_camera FOREIGN KEY (camera_id)
+        REFERENCES camera_devices(id) ON DELETE CASCADE,
+    CONSTRAINT CK_count_nonneg CHECK (person_count >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX IX_count_cam_time ON camera_count_logs(camera_id, recorded_at DESC);
+
+/* ============================================================
+   DỮ LIỆU GIẢ - MÔI TRƯỜNG TRƯỜNG HỌC (mỗi bảng 10 dòng)
+   - Dùng id tường minh từ 101 trở đi để không đụng dữ liệu thật
+   - KHÔNG xóa dữ liệu cũ. Chạy lại lần 2 sẽ lỗi trùng khóa:
+     chạy phần "XÓA DỮ LIỆU GIẢ" ở cuối file trước.
+   - Quy ước: camera_devices.location = persons.location = tên lớp
+   ============================================================ */
+
+USE db_camera;
+
+/* 1. users (101 admin, 102-109 giáo viên, 110 bảo vệ) */
+INSERT INTO users (id, username, password_hash, full_name, email, phone, role, is_active) VALUES
+(101, 'admin_school', 'fake_hash', 'Quản trị trường',   'admin@school.test',  '0900000101', 'admin', 1),
+(102, 'gv_lan',       'fake_hash', 'Nguyễn Thị Lan',    'lan@school.test',    '0900000102', 'user',  1),
+(103, 'gv_nam',       'fake_hash', 'Trần Văn Nam',      'nam@school.test',    '0900000103', 'user',  1),
+(104, 'gv_huong',     'fake_hash', 'Lê Thị Hương',      'huong@school.test',  '0900000104', 'user',  1),
+(105, 'gv_tuan',      'fake_hash', 'Phạm Minh Tuấn',    'tuan@school.test',   '0900000105', 'user',  1),
+(106, 'gv_mai',       'fake_hash', 'Hoàng Thị Mai',     'mai@school.test',    '0900000106', 'user',  1),
+(107, 'gv_hung',      'fake_hash', 'Vũ Quốc Hùng',      'hung@school.test',   '0900000107', 'user',  1),
+(108, 'gv_thao',      'fake_hash', 'Đặng Thị Thảo',     'thao@school.test',   '0900000108', 'user',  1),
+(109, 'gv_binh',      'fake_hash', 'Bùi Văn Bình',      'binh@school.test',   '0900000109', 'user',  1),
+(110, 'bv_duc',       'fake_hash', 'Ngô Văn Đức (Bảo vệ)', 'duc@school.test', '0900000110', 'user',  1);
+
+/* 2. camera_devices (8 lớp + cổng + căng tin) */
+INSERT INTO camera_devices (id, camera_code, user_id, camera_name, ip_address, stream_url, location, status, last_seen) VALUES
+(101, 'SCH-CAM01', 102, 'Camera lớp 9A',  '192.168.1.101', 'rtsp://192.168.1.101/stream', '9A',          'online',  '2026-10-21 07:00:00'),
+(102, 'SCH-CAM02', 103, 'Camera lớp 9B',  '192.168.1.102', 'rtsp://192.168.1.102/stream', '9B',          'online',  '2026-10-21 07:00:00'),
+(103, 'SCH-CAM03', 104, 'Camera lớp 10A', '192.168.1.103', 'rtsp://192.168.1.103/stream', '10A',         'online',  '2026-10-21 06:58:00'),
+(104, 'SCH-CAM04', 105, 'Camera lớp 10B', '192.168.1.104', 'rtsp://192.168.1.104/stream', '10B',         'offline', '2026-10-20 17:30:00'),
+(105, 'SCH-CAM05', 106, 'Camera lớp 11A', '192.168.1.105', 'rtsp://192.168.1.105/stream', '11A',         'online',  '2026-10-21 07:01:00'),
+(106, 'SCH-CAM06', 107, 'Camera lớp 11B', '192.168.1.106', 'rtsp://192.168.1.106/stream', '11B',         'online',  '2026-10-21 07:01:00'),
+(107, 'SCH-CAM07', 108, 'Camera lớp 12A', '192.168.1.107', 'rtsp://192.168.1.107/stream', '12A',         'online',  '2026-10-21 06:59:00'),
+(108, 'SCH-CAM08', 109, 'Camera lớp 12B', '192.168.1.108', 'rtsp://192.168.1.108/stream', '12B',         'offline', '2026-10-19 11:00:00'),
+(109, 'SCH-CAM09', 110, 'Camera cổng chính', '192.168.1.109', 'rtsp://192.168.1.109/stream', 'Cổng chính', 'online',  '2026-10-21 07:02:00'),
+(110, 'SCH-CAM10', 110, 'Camera căng tin',   '192.168.1.110', 'rtsp://192.168.1.110/stream', 'Căng tin',   'online',  '2026-10-21 07:02:00');
+
+/* 3. camera_device_details (1-1) */
+INSERT INTO camera_device_details (camera_id, description, installation_date, direction) VALUES
+(101, 'Gắn góc trên bảng',        '2026-08-15', 'Hướng xuống bàn học'),
+(102, 'Gắn góc trên bảng',        '2026-08-15', 'Hướng xuống bàn học'),
+(103, 'Gắn cuối lớp',             '2026-08-16', 'Hướng lên bảng'),
+(104, 'Gắn cuối lớp',             '2026-08-16', 'Hướng lên bảng'),
+(105, 'Gắn góc trên bảng',        '2026-08-17', 'Hướng xuống bàn học'),
+(106, 'Gắn góc trên bảng',        '2026-08-17', 'Hướng xuống bàn học'),
+(107, 'Gắn cuối lớp',             '2026-08-18', 'Hướng lên bảng'),
+(108, 'Gắn cuối lớp',             '2026-08-18', 'Hướng lên bảng'),
+(109, 'Gắn trên cổng, ngoài trời','2026-08-10', 'Hướng ra đường'),
+(110, 'Gắn trần khu bán hàng',    '2026-08-20', 'Hướng khu bàn ăn');
+
+/* 4. persons (học sinh; user_id = giáo viên phụ trách lớp) */
+INSERT INTO persons (id, person_code, full_name, location, user_id, description, is_active) VALUES
+(101, 'HS26001', 'Nguyễn Văn An',     '9A',  102, 'Lớp trưởng',        1),
+(102, 'HS26002', 'Trần Thị Bích',     '9A',  102, NULL,                1),
+(103, 'HS26003', 'Lê Hoàng Cường',    '9B',  103, NULL,                1),
+(104, 'HS26004', 'Phạm Thị Dung',     '10A', 104, 'Lớp phó học tập',   1),
+(105, 'HS26005', 'Hoàng Minh Đức',    '10A', 104, NULL,                1),
+(106, 'HS26006', 'Vũ Thị Hà',         '10B', 105, NULL,                1),
+(107, 'HS26007', 'Đặng Quang Huy',    '11A', 106, NULL,                1),
+(108, 'HS26008', 'Bùi Thị Lan',       '11B', 107, NULL,                1),
+(109, 'HS26009', 'Ngô Văn Minh',      '12A', 108, 'Bí thư đoàn lớp',   1),
+(110, 'HS26010', 'Đỗ Thị Ngọc',       '12B', 109, NULL,                1);
+
+/* 5. person_face_embeddings (person_id là UNIQUE nên mỗi person 1 dòng) */
+INSERT INTO person_face_embeddings (person_id, model_name, model_version, embedding_json, sample_image_url) VALUES
+(101, 'ArcFace', 'r50', '[0.121,-0.054,0.332,0.098,-0.211]', 'faces/HS26001.jpg'),
+(102, 'ArcFace', 'r50', '[0.045,0.187,-0.122,0.310,0.067]',  'faces/HS26002.jpg'),
+(103, 'ArcFace', 'r50', '[-0.130,0.254,0.071,-0.088,0.199]', 'faces/HS26003.jpg'),
+(104, 'ArcFace', 'r50', '[0.222,0.011,-0.305,0.147,0.052]',  'faces/HS26004.jpg'),
+(105, 'ArcFace', 'r50', '[0.098,-0.176,0.240,0.033,-0.261]', 'faces/HS26005.jpg'),
+(106, 'ArcFace', 'r50', '[-0.057,0.329,0.118,-0.204,0.140]', 'faces/HS26006.jpg'),
+(107, 'ArcFace', 'r50', '[0.301,0.092,-0.147,0.220,-0.036]', 'faces/HS26007.jpg'),
+(108, 'ArcFace', 'r50', '[0.154,-0.263,0.087,0.176,0.209]',  'faces/HS26008.jpg'),
+(109, 'ArcFace', 'r50', '[-0.219,0.048,0.295,-0.112,0.083]', 'faces/HS26009.jpg'),
+(110, 'ArcFace', 'r50', '[0.066,0.201,-0.034,0.318,-0.157]', 'faces/HS26010.jpg');
+
+/* 6. device_mcu */
+INSERT INTO device_mcu (id, mac_address, user_id, device_name, location, status, last_seen) VALUES
+(101, 'AA:BB:CC:00:01:01', 102, 'Cảm biến lớp 9A',   '9A',          'online',  '2026-10-21 07:00:00'),
+(102, 'AA:BB:CC:00:01:02', 103, 'Cảm biến lớp 9B',   '9B',          'online',  '2026-10-21 07:00:00'),
+(103, 'AA:BB:CC:00:01:03', 104, 'Cảm biến lớp 10A',  '10A',         'online',  '2026-10-21 06:59:00'),
+(104, 'AA:BB:CC:00:01:04', 105, 'Cảm biến lớp 10B',  '10B',         'offline', '2026-10-20 17:00:00'),
+(105, 'AA:BB:CC:00:01:05', 106, 'Cảm biến lớp 11A',  '11A',         'online',  '2026-10-21 07:01:00'),
+(106, 'AA:BB:CC:00:01:06', 107, 'Cảm biến lớp 11B',  '11B',         'online',  '2026-10-21 07:01:00'),
+(107, 'AA:BB:CC:00:01:07', 108, 'Cảm biến lớp 12A',  '12A',         'online',  '2026-10-21 06:58:00'),
+(108, 'AA:BB:CC:00:01:08', 109, 'Cảm biến lớp 12B',  '12B',         'offline', '2026-10-19 11:00:00'),
+(109, 'AA:BB:CC:00:01:09', 110, 'Cảm biến căng tin', 'Căng tin',    'online',  '2026-10-21 07:02:00'),
+(110, 'AA:BB:CC:00:01:10', 110, 'Cảm biến nhà kho',  'Nhà kho',     'online',  '2026-10-21 07:02:00');
+
+/* 7. sensor_logs */
+INSERT INTO sensor_logs (mcu_id, temperature, humidity, gas_level, smoke_level, recorded_at) VALUES
+(101, 28.50, 65.20, 0.10, 0.00, '2026-10-21 07:00:00'),
+(102, 28.10, 66.00, 0.12, 0.00, '2026-10-21 07:00:00'),
+(103, 29.00, 63.50, 0.09, 0.01, '2026-10-21 07:00:00'),
+(104, 27.80, 67.10, 0.11, 0.00, '2026-10-20 17:00:00'),
+(105, 28.90, 64.80, 0.10, 0.00, '2026-10-21 07:01:00'),
+(106, 29.30, 62.90, 0.13, 0.00, '2026-10-21 07:01:00'),
+(107, 30.10, 61.40, 0.10, 0.02, '2026-10-21 07:01:00'),
+(108, 27.50, 68.30, 0.08, 0.00, '2026-10-19 11:00:00'),
+(109, 33.40, 58.70, 0.85, 0.30, '2026-10-21 07:02:00'),
+(110, 26.90, 70.20, 0.15, 0.05, '2026-10-21 07:02:00');
+
+/* 8. violation_types */
+INSERT INTO violation_types (id, code, name, description, is_active) VALUES
+(101, 'SCH_LATE',        'Đi học muộn',               'Vào lớp sau giờ quy định',          1),
+(102, 'SCH_NO_UNIFORM',  'Không mặc đồng phục',       'Không đúng đồng phục quy định',     1),
+(103, 'SCH_PHONE',       'Dùng điện thoại trong giờ', 'Sử dụng điện thoại khi học',        1),
+(104, 'SCH_FIGHT',       'Đánh nhau',                 'Xô xát, đánh nhau trong trường',    1),
+(105, 'SCH_LEAVE_CLASS', 'Tự ý rời lớp',              'Ra khỏi lớp khi chưa được phép',    1),
+(106, 'SCH_SLEEP',       'Ngủ trong giờ học',         'Ngủ gục trong giờ',                 1),
+(107, 'SCH_NO_HELMET',   'Không đội mũ bảo hiểm',     'Đi xe máy điện không đội mũ',       1),
+(108, 'SCH_SMOKING',     'Hút thuốc',                 'Hút thuốc trong khuôn viên trường', 1),
+(109, 'SCH_STRANGER',    'Người lạ vào trường',       'Người không có trong danh sách',    1),
+(110, 'SCH_CLIMB_WALL',  'Trèo tường',                'Trèo tường rào ra vào trường',      1);
+
+/* 9. camera_logs (camera, person khớp lớp; 1 dòng person NULL = người lạ) */
+INSERT INTO camera_logs (camera_id, person_id, violation_type_id, detected_at, confidence, image_url, review_status, reviewed_by, reviewed_at, review_note, source_event_id) VALUES
+(101, 101,  101, '2026-10-20 07:20:00', 0.9321, '2026/10/log_001.jpg', 'approved', 102, '2026-10-20 08:00:00', 'Đúng, đi muộn 15 phút', 'EVT-20261020-0001'),
+(101, 102,  103, '2026-10-20 09:10:00', 0.8810, '2026/10/log_002.jpg', 'rejected', 102, '2026-10-20 09:30:00', 'Đang tra từ điển',      'EVT-20261020-0002'),
+(102, 103,  106, '2026-10-20 10:05:00', 0.7954, '2026/10/log_003.jpg', 'pending',  NULL, NULL,                NULL,                    'EVT-20261020-0003'),
+(103, 104,  102, '2026-10-20 07:05:00', 0.9112, '2026/10/log_004.jpg', 'approved', 104, '2026-10-20 07:40:00', 'Thiếu áo đồng phục',    'EVT-20261020-0004'),
+(103, 105,  105, '2026-10-20 14:15:00', 0.8433, '2026/10/log_005.jpg', 'pending',  NULL, NULL,                NULL,                    'EVT-20261020-0005'),
+(104, 106,  103, '2026-10-20 15:20:00', 0.8027, '2026/10/log_006.jpg', 'approved', 105, '2026-10-20 16:00:00', 'Nhắc nhở lần 1',         'EVT-20261020-0006'),
+(105, 107,  101, '2026-10-21 07:25:00', 0.9455, '2026/10/log_007.jpg', 'pending',  NULL, NULL,                NULL,                    'EVT-20261021-0001'),
+(106, 108,  104, '2026-10-21 09:45:00', 0.7712, '2026/10/log_008.jpg', 'pending',  NULL, NULL,                NULL,                    'EVT-20261021-0002'),
+(109, 109,  107, '2026-10-21 06:50:00', 0.9033, '2026/10/log_009.jpg', 'approved', 110, '2026-10-21 07:10:00', 'Không đội mũ bảo hiểm', 'EVT-20261021-0003'),
+(109, NULL, 109, '2026-10-21 06:55:00', 0.6521, '2026/10/log_010.jpg', 'pending',  NULL, NULL,                NULL,                    'EVT-20261021-0004');
+
+/* 10. camera_schedules */
+INSERT INTO camera_schedules (camera_id, schedule_name, start_time, end_time, days_of_week, is_active) VALUES
+(101, 'Giờ học buổi sáng',  '07:00:00', '11:30:00', '1,2,3,4,5',   1),
+(102, 'Giờ học buổi sáng',  '07:00:00', '11:30:00', '1,2,3,4,5',   1),
+(103, 'Giờ học buổi sáng',  '07:00:00', '11:30:00', '1,2,3,4,5',   1),
+(104, 'Giờ học buổi chiều', '13:30:00', '17:00:00', '1,2,3,4,5',   1),
+(105, 'Giờ học buổi sáng',  '07:00:00', '11:30:00', '1,2,3,4,5',   1),
+(106, 'Giờ học buổi chiều', '13:30:00', '17:00:00', '1,2,3,4,5',   1),
+(107, 'Học thêm thứ Bảy',   '08:00:00', '11:00:00', '6',           1),
+(108, 'Giờ học buổi chiều', '13:30:00', '17:00:00', '1,2,3,4,5',   0),
+(109, 'Giờ đón và tan học', '06:30:00', '18:00:00', '1,2,3,4,5,6', 1),
+(110, 'Giờ ăn trưa',        '10:30:00', '13:00:00', '1,2,3,4,5',   1);
+
+/* 11. camera_count_logs */
+INSERT INTO camera_count_logs (camera_id, person_count, recorded_at) VALUES
+(101, 38, '2026-10-21 07:30:00'),
+(102, 40, '2026-10-21 07:30:00'),
+(103, 36, '2026-10-21 07:30:00'),
+(104, 0,  '2026-10-20 17:30:00'),
+(105, 41, '2026-10-21 07:30:00'),
+(106, 39, '2026-10-21 07:30:00'),
+(107, 35, '2026-10-21 07:30:00'),
+(108, 0,  '2026-10-19 17:00:00'),
+(109, 120,'2026-10-21 06:45:00'),
+(110, 85, '2026-10-21 11:15:00');
+
+
+/* ============================================================
+   KIỂM TRA
+   ============================================================ */
+-- User quản lý camera nào
+-- SELECT u.username, c.camera_code, c.location FROM users u JOIN camera_devices c ON c.user_id=u.id WHERE u.id BETWEEN 101 AND 110 ORDER BY u.id;
+-- Camera quản lý person nào
+-- SELECT c.camera_code, c.location, p.person_code, p.full_name FROM camera_devices c LEFT JOIN persons p ON p.location=c.location WHERE c.id BETWEEN 101 AND 110 ORDER BY c.id, p.id;
+-- User quản lý person nào
+-- SELECT u.username, p.person_code, p.full_name, p.location FROM users u JOIN persons p ON p.user_id=u.id WHERE u.id BETWEEN 101 AND 110 ORDER BY u.id;
+-- Log đầy đủ
+-- SELECT l.id, c.camera_code, p.full_name, v.name, l.review_status FROM camera_logs l JOIN camera_devices c ON c.id=l.camera_id LEFT JOIN persons p ON p.id=l.person_id JOIN violation_types v ON v.id=l.violation_type_id WHERE l.source_event_id LIKE 'EVT-2026%';
+
+
+/* ============================================================
+   XÓA DỮ LIỆU GIẢ (chỉ xóa id 101-110, không đụng dữ liệu thật)
+   Bỏ comment và chạy khi muốn nạp lại từ đầu.
+   ============================================================ */
+-- SET FOREIGN_KEY_CHECKS = 0;
+-- DELETE FROM camera_count_logs     WHERE camera_id BETWEEN 101 AND 110;
+-- DELETE FROM camera_schedules      WHERE camera_id BETWEEN 101 AND 110;
+-- DELETE FROM camera_logs           WHERE source_event_id LIKE 'EVT-2026%';
+-- DELETE FROM sensor_logs           WHERE mcu_id BETWEEN 101 AND 110;
+-- DELETE FROM person_face_embeddings WHERE person_id BETWEEN 101 AND 110;
+-- DELETE FROM camera_device_details WHERE camera_id BETWEEN 101 AND 110;
+-- DELETE FROM device_mcu            WHERE id BETWEEN 101 AND 110;
+-- DELETE FROM camera_devices        WHERE id BETWEEN 101 AND 110;
+-- DELETE FROM persons               WHERE id BETWEEN 101 AND 110;
+-- DELETE FROM violation_types       WHERE id BETWEEN 101 AND 110;
+-- DELETE FROM users                 WHERE id BETWEEN 101 AND 110;
+-- SET FOREIGN_KEY_CHECKS = 1;
+
+
+
+
+/* ============================================================
+   Giáo viên quản lý học sinh
+   ============================================================ */
+SELECT u.username, COUNT(p.id) AS so_hoc_sinh
+FROM users u
+LEFT JOIN persons p ON p.user_id = u.id
+WHERE u.id BETWEEN 101 AND 110
+GROUP BY u.id, u.username
+ORDER BY u.id;
+
+/* ============================================================
+   Giáo viên quản lý camera
+   ============================================================ */
+SELECT u.id AS user_id, u.username, u.full_name,
+       c.id AS camera_id, c.camera_code, c.camera_name, c.location, c.status
+FROM users u
+JOIN camera_devices c ON c.user_id = u.id
+WHERE u.id BETWEEN 101 AND 110
+ORDER BY u.id, c.id;
+
+/* ============================================================
+   Camera quản lý học sinh
+   ============================================================ *
+SELECT c.camera_code, c.location, c.status,
+       p.person_code, p.full_name
+FROM camera_devices c
+LEFT JOIN persons p ON p.location = c.location
+WHERE c.id BETWEEN 101 AND 110
+ORDER BY c.id, p.id;
+
+/* ============================================================
+   giáo viên quản lý học sinh qua camera
+   ============================================================ *
+SELECT DISTINCT u.username, p.person_code, p.full_name, p.location
+FROM users u
+JOIN camera_devices c ON c.user_id = u.id
+JOIN persons p ON p.location = c.location
+WHERE u.id BETWEEN 101 AND 110
+ORDER BY u.username, p.person_code;
+
+/* ============================================================
+   Vị trí lưu ảnh 
+doanduchuy@doanduchuy-HP-Laptop-14-em0xxx:~/Downloads/app/backend/demo/src/main/java/com/medisense/image$ 
+   ============================================================ *
