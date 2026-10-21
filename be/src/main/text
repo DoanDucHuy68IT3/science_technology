@@ -1,0 +1,163 @@
+.\mvnw.cmd spring-boot:run
+
+
+
+docker compose up -d --build
+USE khkt_iot;
+
+SELECT * FROM users;
+SELECT * FROM faces;
+SELECT * FROM devices_mcu;
+SELECT * FROM devices_camera;
+SELECT * FROM sensor_logs;
+SELECT * FROM person_count_logs;
+SELECT * FROM detect_person_logs;
+SELECT * FROM medicines;
+SELECT * FROM medicine_devices;
+SELECT * FROM user_health;
+
+use khkt_iot
+
+CREATE TABLE users (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(100) NOT NULL,
+    password NVARCHAR(255) NOT NULL,
+    email NVARCHAR(100) UNIQUE NOT NULL,
+    create_day DATETIME DEFAULT GETDATE(),
+    update_day DATETIME NULL,
+    avatar NVARCHAR(MAX) NULL
+);
+CREATE TABLE faces (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    face NVARCHAR(MAX) NOT NULL,
+    create_day DATETIME DEFAULT GETDATE(),
+
+    CONSTRAINT FK_faces_users
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+
+CREATE TABLE devices_mcu (
+    mcu_id VARCHAR(100) PRIMARY KEY,
+    user_id INT NOT NULL,
+    create_day DATETIME2 DEFAULT GETDATE(),
+    update_day DATETIME2 NULL,
+    location NVARCHAR(255) NULL,
+    status BIT NOT NULL DEFAULT 1,
+
+    CONSTRAINT FK_devices_mcu_users
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+);
+CREATE TABLE devices_camera (
+    camera_id NVARCHAR(50) PRIMARY KEY,
+    user_id INT NULL,
+    create_day DATETIME DEFAULT GETDATE(),
+    update_day DATETIME NULL,
+    location NVARCHAR(255) NULL,
+    status INT DEFAULT 1,
+
+    CONSTRAINT FK_devices_camera_users
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
+);
+CREATE TABLE sensor_logs (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    mcu_id VARCHAR(100) NOT NULL,
+    temperature FLOAT NULL,
+    humidity FLOAT NULL,
+    heart INT NULL,
+    time DATETIME DEFAULT GETDATE(),
+
+    CONSTRAINT FK_sensor_logs_devices_mcu
+        FOREIGN KEY (mcu_id)
+        REFERENCES devices_mcu(mcu_id)
+);
+
+CREATE TABLE person_count_logs (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    camera_id NVARCHAR(50) NOT NULL,
+    number INT NOT NULL,
+    time DATETIME DEFAULT GETDATE(),
+
+    CONSTRAINT FK_person_count_logs_camera
+        FOREIGN KEY (camera_id)
+        REFERENCES devices_camera(camera_id)
+);
+CREATE TABLE detect_person_logs (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+
+    camera_id NVARCHAR(50) NOT NULL,
+    user_id INT NOT NULL,
+
+    image NVARCHAR(MAX) NULL,
+    time DATETIME DEFAULT GETDATE(),
+
+    CONSTRAINT FK_detect_person_logs_camera
+        FOREIGN KEY (camera_id)
+        REFERENCES devices_camera(camera_id),
+
+    CONSTRAINT FK_detect_person_logs_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+----------------
+CREATE TABLE medicines (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    name NVARCHAR(255) NOT NULL,
+    dosage_quantity INT NOT NULL DEFAULT 1,
+    create_at DATETIME2 DEFAULT GETDATE(),
+    update_at DATETIME2 NULL,
+    dosage_time TIME NOT NULL,
+    expiry_date DATE NULL,
+    description NVARCHAR(MAX) NULL,
+    end_time TIME NULL,
+    CONSTRAINT FK_medicines_users
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+{
+  "userId": 1,
+  "name": "Paracetamol",
+  "dosageQuantity": 2,
+  "dosageTime": "08:00:00",
+  "endTime": "08:00:01",
+  "expiryDate": "2027-05-20",
+  "description": "Uống sau ăn"
+}
+--------------
+CREATE TABLE medicine_devices (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    medicine_id INT NOT NULL,
+    device_id VARCHAR(100) NOT NULL,
+    servo_pin INT NOT NULL,
+    create_day DATETIME2 DEFAULT GETDATE(),
+    update_day DATETIME2 NULL,
+
+    CONSTRAINT FK_medicine_devices_medicine
+        FOREIGN KEY (medicine_id)
+        REFERENCES medicines(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT FK_medicine_devices_device
+        FOREIGN KEY (device_id)
+        REFERENCES devices_mcu(mcu_id)
+        ON DELETE CASCADE
+);
+{
+    "medicineId": 1,
+    "deviceId": "AA:BB:CC:DD:EE:FF",
+    "servoPin": 0
+}
+
+{
+  "name": "doanduchuy",
+  "email": "huy123@gmail.com",
+  "password": "Matkhau123"
+}

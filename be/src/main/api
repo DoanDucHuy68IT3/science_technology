@@ -1,0 +1,235 @@
+MEDORA AI – API Đây là Java Spring bạn code file SRC Angular tương ứng cho tôi 
+21.2.24
+Base URL: http://localhost:8080
+1. Authentication
+POST /api/signup
+POST /api/login
+
+Signup
+{
+  "name": "Nguyen Van A",
+  "email": "a@gmail.com",
+  "password": "123456"
+}
+
+Login
+{
+  "email": "a@gmail.com",
+  "password": "123456"
+}
+
+2. Face
+POST /api/faces
+
+1 embedding
+{
+  "userId": 1,
+  "face": [0.123, -0.456, 0.789]
+}
+
+4 embeddings
+{
+  "userId": 1,
+  "faces": [
+    [0.123, -0.456, 0.789],
+    [0.234, -0.567, 0.890],
+    [0.345, -0.678, 0.901],
+    [0.456, -0.789, 0.012]
+  ]
+}
+
+face là face embedding, không phải ảnh JPG.
+
+3. MCU
+GET    /api/devices-mcu
+GET    /api/devices-mcu/{mcuId}
+GET    /api/devices-mcu/user/{userId}
+POST   /api/devices-mcu
+PUT    /api/devices-mcu/{mcuId}
+DELETE /api/devices-mcu/{mcuId}
+
+POST
+{
+  "mcuId": "AA:BB:CC:DD:EE:FF",
+  "userId": 1,
+  "location": "Phong ngu",
+  "status": true
+}
+
+PUT
+{
+  "userId": 1,
+  "location": "Phong khach",
+  "status": true
+}
+
+4. Camera
+GET    /api/devices-camera
+GET    /api/devices-camera/{cameraId}
+GET    /api/devices-camera/user/{userId}
+POST   /api/devices-camera
+PUT    /api/devices-camera/{cameraId}
+DELETE /api/devices-camera/{cameraId}
+
+POST
+{
+  "cameraId": "CAM_001",
+  "userId": 1,
+  "location": "Phong khach",
+  "status": 1
+}
+
+PUT
+{
+  "userId": 1,
+  "location": "Phong ngu",
+  "status": 1
+}
+
+5. Sensor
+GET    /api/sensor-logs
+GET    /api/sensor-logs/{id}
+GET    /api/sensor-logs/mcu/{mcuId}
+POST   /api/sensor-logs
+DELETE /api/sensor-logs/{id}
+
+POST
+{
+  "mcuId": "AA:BB:CC:DD:EE:FF",
+  "temperature": 36.5,
+  "humidity": 65.2,
+  "heart": 78
+}
+
+6. Person Count
+GET    /api/person-count-logs
+GET    /api/person-count-logs/{id}
+GET    /api/person-count-logs/camera/{cameraId}
+POST   /api/person-count-logs
+DELETE /api/person-count-logs/{id}
+
+POST
+{
+  "cameraId": "CAM_001",
+  "number": 5
+}
+
+Lấy dữ liệu camera
+GET /api/person-count-logs/camera/CAM_001
+
+7. Detect Person
+GET    /api/detect-person-logs
+GET    /api/detect-person-logs/{id}
+GET    /api/detect-person-logs/camera/{cameraId}
+GET    /api/detect-person-logs/user/{userId}
+POST   /api/detect-person-logs
+DELETE /api/detect-person-logs/{id}
+
+POST upload ảnh: multipart/form-data
+cameraId = CAM_001
+userId   = 1
+image    = file.jpg
+
+PowerShell:
+curl.exe -X POST "http://localhost:8080/api/detect-person-logs" `
+  -F "cameraId=CAM_001" `
+  -F "userId=1" `
+  -F "image=@H:\security-multimedia\final-face\images\1\5.jpg"
+
+Lấy lịch sử nhận diện camera
+GET /api/detect-person-logs/camera/CAM_001
+
+Lấy lịch sử nhận diện user
+GET /api/detect-person-logs/user/1
+
+
+
+GET    /api/medicines
+GET    /api/medicines/{id}
+GET    /api/medicines/user/{userId}
+POST   /api/medicines
+PUT    /api/medicines/{id}
+DELETE /api/medicines/{id}
+
+POST /api/medicines
+{
+  "userId": 1,
+  "name": "Paracetamol",
+  "dosageQuantity": 2,
+  "dosageTime": "08:00:00",
+  "expiryDate": "2027-05-20",
+  "description": "Uống sau ăn"
+}
+API
+GET    /api/medicine-devices
+GET    /api/medicine-devices/{id}
+GET    /api/medicine-devices/medicine/{medicineId}
+GET    /api/medicine-devices/device/{deviceId}
+POST   /api/medicine-devices
+PUT    /api/medicine-devices/{id}
+DELETE /api/medicine-devices/{id}
+
+POST
+{
+    "medicineId": 1,
+    "deviceId": "AA:BB:CC:DD:EE:FF",
+    "servoPin": 0
+}
+CREATE TABLE user_health (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+
+    gender NVARCHAR(20) NULL,
+    age INT NULL,
+    hypertension BIT DEFAULT 0,
+    heart_disease BIT DEFAULT 0,
+    smoking_history NVARCHAR(50) NULL,
+
+    bmi_score FLOAT NULL,
+    haemoglobin_level FLOAT NULL,
+    blood_glucose_level FLOAT NULL,
+
+    is_diabetic BIT DEFAULT 0,
+
+    create_day DATETIME2 DEFAULT GETDATE(),
+    update_day DATETIME2 NULL,
+
+    CONSTRAINT FK_user_health_users
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+{
+    "userId": 1,
+    "gender": "Male",
+    "age": 45,
+    "hypertension": true,
+    "heartDisease": false,
+    "smokingHistory": "never",
+    "bmiScore": 24.5,
+    "haemoglobinLevel": 14.2,
+    "bloodGlucoseLevel": 110.0,
+    "isDiabetic": false
+}
+API
+GET    /api/user-health
+GET    /api/user-health/{id}
+GET    /api/user-health/user/{userId}
+POST   /api/user-health
+PUT    /api/user-health/{id}
+DELETE /api/user-health/{id}
+
+POST /api/user-health
+{
+    "userId": 1,
+    "gender": "Male",
+    "age": 45,
+    "hypertension": true,
+    "heartDisease": false,
+    "smokingHistory": "never",
+    "bmiScore": 24.5,
+    "haemoglobinLevel": 14.2,
+    "bloodGlucoseLevel": 110.0,
+    "isDiabetic": false
+}
+Đây là giao diện mong muốn 
